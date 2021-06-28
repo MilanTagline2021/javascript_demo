@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        var tableData = [];
+
+        var abc = ({
+            "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7InVzZXJfZW1haWwiOiJ6ZWVsLnRhZ2xpbmVAZ21haWwuY29tIiwiYXBpX3Rva2VuIjoiOEZzN2RDREUwRjB6T2dUWHMwMjZGUzhUM2QzeVF1YjljMFdrakdCbXRjRnNRdG5YS2ZEb2FSSVdzb3A0ZDlFbVVubyJ9LCJleHAiOjE2MjAzODEwMjJ9.5vTKvlDxy0UcslSEWXU3v3-PdZ200DNeE21N5lkzGYs             ",
+            "Accept": "application/json"
+        });
+        
+        $(document).ready(function () {
+            
+            setCountry()
+
+            $(".country").on('change' ,function () {
+                setState()
+            })
+
+            $(".state").on('change' ,function () {
+                setCity()
+            })
+
+            var count = 0;
+
+            $(document).on("click", ".update", function () {
+
+                var data = serArray();
+
+                console.log(data);
+                
+                if (validateForm(data)) {
+                    updateTableData(data, tableData);
+                    printTable();
+                    $('#myForm').each(function () {
+                        this.reset();
+                    });
+
+                    $(".update").removeClass('update').addClass("submit").attr({
+                        "value": "save",
+                        "type": "submit"
+                    });
+                } else {}
+                return false;
+            });
+
+            function updateTableData(data, array) {  // update in array
+                var x = data.id;
+                console.log(x);
+                for (var i = 0; i < array.length; i++) {
+                    if (array[i].id == x) {
+                        array[i] = data;
+                    }
+                }
+            }
+
+            $(document).on("click", ".submit", function () {
+
+                var data = serArray();
+                data["id"]= ++count;
+            
+                if(validateForm(data)) {
+                    addTableData(data);
+                    console.log(tableData);
+                    printTable();
+                    $('#myForm').each(function () {
+                        this.reset();
+                    });
+                } else {
+                    count--;
+                }
+                return false;
+            });
+        });
+            function setCountry (country = undefined,state = undefined,city = undefined) {
+                $.ajax({
+                    url : "https://www.universal-tutorial.com/api/countries/",
+                    headers : abc,
+                    success : function (response) {
+                        $.each(response , function (key,value) {
+                            $(".country").append(`<option>${value.country_name}</option>`)
+                        })
+                    }
+                })
+            }
+
+            function setState (country =undefined,state = undefined,city = undefined) {
+                
+                    if(country == undefined){ var country = $(".country").val() }
+                    resetAreas ()
+                    $.ajax({
+                        url : "https://www.universal-tutorial.com/api/states/"+country,
+                        headers : abc,
+                        success : function (response) {
+                            $.each(response , function (key,value) {
+                                $(".state").append(`<option>${value.state_name}</option>`)
+                            })
+                            console.log(country,state);
+                            if (state != undefined) {
+                                $("select[name='state']").val(state);
+                                setCity(country,state,city)
+                            }
+                        }
+                    })
+                
+            }  
+            function setCity (country = undefined,state = undefined,city = undefined) {     
+                    $(".city option").not(':eq(0)').remove()
+                    if(state == undefined) {var state = $(".state").val()}
+                    $.ajax({
+                        url : "https://www.universal-tutorial.com/api/cities/"+state,
+                        headers : abc,
+                        success : function (response) {
+                            $.each(response , function (key,value) {
+                                $(".city").append(`<option>${value.city_name}</option>`)
+                            })
+                            if (city != undefined) {
+                                $("select[name='city']").val(city);
+                            }
+                        }
+                    })
+               
+            }
+
+        $(document).on('click', '.modify', function () { //data send to form on click modify
+            $('#myForm').each(function () {
+                this.reset();
+            });
+            var id = Number($(this).attr('data-id'))
+            const form_obj = indexOf(tableData, id);
+            $("input[name='id']").val(id);
+            $("input[name='name']").val(form_obj.name);
+            $("input[name='email']").val(form_obj.email);
+            $(`input:radio[name=gender][value='${form_obj.gender}']`).prop('checked', true);
+            setState(form_obj.country,form_obj.state,form_obj.city)
+            $("select[name='country']").val(form_obj.country);
+            // $("select[name='state']").val(form_obj.state);
+            // $("select[name='city']").val(form_obj.city);
+            // console.log(form_obj.country);
+            // console.log(form_obj.state);
+            // console.log(form_obj.city);
+            form_obj.hobby.forEach(function (value, key) {
+                $(`input:checkbox[name=hobby][value='${value}']`).prop('checked', true)
+            });
+
+            $('.submit').removeClass('submit').addClass("update").attr({
+                "value": "update",
+                "type": "button"
+            });
+        });
+        function indexOf(array, id) {
+            console.log(id);
+            for (let i = 0; i < array.length; i++) {
+                if (array[i].id == id) {
+                    return array[i];
+                }
+            }
+        }
+
+        function validateForm(data) { //validation form
+            var status = true;
+            if (!data.name) {
+                $(".erName").show();
+                $(".erName").html("Name must be filled out");
+                status = false;
+            } else {
+                $(".erName").hide()
+            }
+            if (!data.email) {
+                $(".erEmail").show();
+                $(".erEmail").html("Email must be filled out")
+                status = false;
+            } else {
+                $(".erEmail").hide()
+            }
+            if (!data.gender) {
+                $(".erGender").show();
+                $(".erGender").html("gender not selected")
+                status = false;
+            } else {
+                $(".erGender").hide()
+            }
+            if (((data.hobby).length) <= 0 ) {
+                $(".erHobby").show();
+                $(".erHobby").html("hobby not selected")
+                status = false;
+            } else {
+                $(".erHobby").hide()
+            }
+            if (data.country == "select") {
+                $(".erCountry").show();
+                $(".erCountry").html("country not selected")
+                status = false;
+            } else {
+                $(".erCountry").hide()
+            }
+            if (data.state == "select") {
+                $(".erState").show();
+                $(".erState").html("state not selected")
+                status = false;
+            } else {
+                $(".erState").hide()
+            }
+            if (data.city == "select") {
+                $(".erCity").show();
+                $(".erCity").html("city not selected")
+                status = false;
+            } else {
+                $(".erCity").hide()
+            }
+
+            return status;
+        }
+
+        $(document).on('click', '.cancel', function () { // click on cancel button
+            $('#myForm').each(function () {
+                this.reset();
+            })
+            $("span").hide();
+            $(".update").removeClass('update').addClass("submit").attr({
+                "value": "save",
+                "type": "submit"
+            });
+            resetAreas ()
+        });
+
+        $(document).on('keyup', '.search', function () {
+            var value = $(this).val().toLowerCase();
+            $(".body tr").each(function (index) {
+                var a = $(this).find("td:eq(1)").text();
+                if (a.indexOf(value) > -1) {
+                    $(this).show()
+                } else {
+                    $(this).hide();
+                }
+            })
+        })
+
+        $(document).on('change', '.sort', function () { //Asc and dsc table
+            var a = $(".sort").val();
+            if (a == "Asc") {
+                tableData.sort(function (a, b) {
+                    var x = a.name.toLowerCase();
+                    var y = b.name.toLowerCase();
+                    return x == y ? 0 : x > y ? 1 : -1;
+                });
+            } else if (a == "Dsc") {
+                tableData.sort(function (a, b) {
+                    var x = a.name.toLowerCase();
+                    var y = b.name.toLowerCase();
+                    return x == y ? 0 : x > y ? -1 : 1;
+                });
+            }
+            printTable();
+        })
+
+        function addTableData(data) { //  push in array
+            tableData.push(data);
+        }
+
+        function deleteTableData(data) { //delete row from array
+            var i = data.parentNode.parentNode.rowIndex;
+            console.log(i);
+            document.getElementById("myTable").deleteRow(i);
+            for (var a = 0; a <= tableData.length; a++) {
+                if (a == i - 1) {
+                    tableData.splice(a, 1);
+                    break;
+                }
+            }
+            console.log(tableData);
+        }
+        
+        function serArray() {
+            var sarr = $("#myForm").serializeArray();
+            console.log(sarr);
+            var hobbys = [];
+            var obj = {};
+            $.each( sarr , function (i,v) {
+                obj[v.name] = v.value;
+                if(v.name == "hobby")
+                {
+                    hobbys.push(v.value);
+                }
+            });
+            obj["hobby"] = hobbys;
+            return obj;
+        }
+        
+        function printTable() {
+            const tbody = $('tbody');
+            tbody.html('');
+
+            for (let item of tableData) {
+                let tr =
+                    `<tr id="tr_${item.id}"> <td>${item.id}</td>  <td>${item.name}</td> <td>${item.email}</td> <td>${item.gender}</td> <td>${item.hobby}</td>  <td>${item.country}</td> <td>${item.state}</td> <td>${item.city}</td> <td> <input type="button" value="delete" onclick="deleteTableData(this)"  class="delete"> &nbsp; <input type="button" class= "modify" value="modify" data-id= ${item.id} >  </td></tr>`
+                tbody.append(tr);
+            }
+            resetAreas ()
+        }
+
+        function resetAreas () {
+            $(".state option").not(':eq(0)').remove()
+            $(".city option").not(':eq(0)').remove()
+        }
+        
+            
+    </script>
+    <title>Demo form</title>
+</head>
+
+<body>
+    <form name="myForm" id="myForm">
+        <input type="hidden" value="" name="id">
+        <label for="name">Name : </label>
+        <input class="name" name="name" type="text"><span class="erName"></span> <br>
+        <label for="email">Email : </label> <input class="email" type="email" name="email"> <span
+            class="erEmail"></span> <br>
+
+        <label for="gender">Gender : </label>
+        <label for="male">Male</label>
+        <input type="radio" id="male" name="gender" value="male" selected="">
+        <label for="female">Female</label>
+        <input type="radio" id="female" name="gender" value="female" selected="">
+        <span class="erGender"></span> <br>
+
+        <label for="hobby">Hobby : </label>
+        <label for="read"> Reading</label>
+        <input id="hobby" type="checkbox" id="read" name="hobby" value="Reading">
+        <label for="travel"> Travelling</label>
+        <input id="hobby" type="checkbox" id="travel" name="hobby" value="Travelling">
+        <label for="sport"> Sport</label>
+        <input id="hobby" type="checkbox" id="sport" name="hobby" value="Sport">
+        <span class="erHobby"></span> <br>
+
+        <label for="country">Country:</label>
+        <select class="country" name="country" value="">
+           <option>select</option>
+        </select><span class="erCountry"></span> <br>
+
+        <label for="state">State:</label>
+        <select class="state" name="state" value="">
+            <option>select</option>
+        </select><span class="erState"></span> <br>
+
+        <label for="city">City:</label>
+        <select class="city" name="city" value="">
+            <option>select</option>
+        </select><span class="erCity"></span> <br>
+
+        <label> Action :</label>
+        <input class="submit" type="submit" value="save">
+        <input class="cancel" type="button" value="cancel">
+
+    </form>
+    Search: <input type="search." class="search">
+    <table border="1" id="myTable">
+        <thead class="head">
+            <tr>
+                <th>id</th>
+                <th>Name <select class="sort">
+                        <option> Asc</option>
+                        <option>Dsc</option>
+                    </select></th>
+                <th>Email</th>
+                <th>Gender</th>
+                <th>Hobby</th>
+                <th>country</th>
+                <th>State</th>
+                <th>City</th>
+                <th>action</th>
+            </tr>
+        </thead>
+        <tbody class="body">
+        </tbody>
+    </table>
+</body>
+
+</html>
